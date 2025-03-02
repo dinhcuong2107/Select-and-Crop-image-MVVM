@@ -8,10 +8,7 @@ import static androidx.core.content.ContentProviderCompat.requireContext;
 import static java.security.AccessController.getContext;
 
 import android.app.AlertDialog;
-import android.app.DatePickerDialog;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.DialogInterface;
+import android.app.Application;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -33,14 +30,17 @@ import androidx.core.content.ContextCompat;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.ObservableField;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.canhub.cropper.CropImageContract;
+import com.canhub.cropper.CropImageContractOptions;
+import com.canhub.cropper.CropImageOptions;
+import com.canhub.cropper.CropImageView;
 import com.example.myapplication.model.Users;
 import com.squareup.picasso.Picasso;
-import com.theartofdev.edmodo.cropper.CropImage;
-import com.theartofdev.edmodo.cropper.CropImageView;
 
 
 import java.io.File;
@@ -49,26 +49,41 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class MainVM extends ViewModel {
+public class MainVM extends AndroidViewModel {
     private MutableLiveData<Uri> selectedImageUri = new MutableLiveData<>();
-    private ActivityResultLauncher<Intent> cropImageLauncher;
+    private ActivityResultLauncher<CropImageContractOptions> cropImageLauncher;
     private ActivityResultLauncher<String> pickImageLauncher;
     private MutableLiveData<AppCompatActivity> context = new MutableLiveData<>();
 
-    public MainVM(ActivityResultRegistry registry) {
-        cropImageLauncher = registry.register("crop_image", new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (result.getResultCode() == RESULT_OK) {
-                CropImage.ActivityResult cropResult = CropImage.getActivityResult(result.getData());
-                if (cropResult.isSuccessful()) {
-                    Uri croppedUri = cropResult.getUri();
-                    Log.d("MainVM", "croppedUri: " + croppedUri);
-                    selectedImageUri.setValue(croppedUri);
-                } else {
-                    Exception error = cropResult.getError();
-                    Log.d("MainVM", "cropError: " + error);
-                }
+    public MainVM(Application application, ActivityResultRegistry registry) {
+        super(application);
+
+        // Đăng ký launcher cắt ảnh - Update 2025
+        cropImageLauncher = registry.register("crop_image", new CropImageContract(), result -> {
+            if (result.isSuccessful()) {
+                Uri croppedUri = result.getUriContent();
+                Log.d("MainViewModel", "Cropped Image URI: " + croppedUri);
+                selectedImageUri.setValue(croppedUri);
+            } else {
+                Exception error = result.getError();
+                Log.e("MainViewModel", "Crop Error: ", error);
             }
         });
+
+        // Đăng ký launcher cắt ảnh
+//        cropImageLauncher = registry.register("crop_image", new ActivityResultContracts.StartActivityForResult(), result -> {
+//            if (result.getResultCode() == RESULT_OK) {
+//                CropImage.ActivityResult cropResult = CropImage.getActivityResult(result.getData());
+//                if (cropResult.isSuccessful()) {
+//                    Uri croppedUri = cropResult.getUri();
+//                    Log.d("MainVM", "croppedUri: " + croppedUri);
+//                    selectedImageUri.setValue(croppedUri);
+//                } else {
+//                    Exception error = cropResult.getError();
+//                    Log.d("MainVM", "cropError: " + error);
+//                }
+//            }
+//        });
 
         pickImageLauncher = registry.register("select_image", new ActivityResultContracts.GetContent(),
                 result -> {
@@ -84,12 +99,15 @@ public class MainVM extends ViewModel {
             Log.e("MainVM", "Context is null");
             return;
         }
-        Intent cropIntent = CropImage.activity(uri)
-                .setGuidelines(CropImageView.Guidelines.ON)
-                .setAspectRatio(1, 1)
-                .getIntent(activity.getApplicationContext());
 
-        cropImageLauncher.launch(cropIntent);
+        CropImageOptions cropImageOptions = new CropImageOptions();
+        cropImageOptions.guidelines = CropImageView.Guidelines.ON;
+        cropImageOptions.aspectRatioX = 1;
+        cropImageOptions.aspectRatioY = 1;
+        cropImageOptions.fixAspectRatio = true; // Khóa tỷ lệ
+
+        CropImageContractOptions options = new CropImageContractOptions(uri, cropImageOptions);
+        cropImageLauncher.launch(options);
     }
 
     public void launchImagePicker(View view) {

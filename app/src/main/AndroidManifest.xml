@@ -28,12 +28,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
-            android:theme="@style/Theme.AppCompat"/>
-<!--        <activity-->
-<!--            android:name="com.yalantis.ucrop.UCropActivity"-->
-<!--            android:screenOrientation="portrait"-->
-<!--            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />-->
+        <!-- Theme is optional and only needed if default theme has no action bar. -->
+        <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:theme="@style/Base.Theme.AppCompat"
+            />
     </application>
 
 </manifest>

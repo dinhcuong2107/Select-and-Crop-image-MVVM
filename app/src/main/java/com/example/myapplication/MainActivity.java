@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
+import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.lifecycle.ViewModelStoreOwner;
@@ -24,7 +25,6 @@ import android.view.View;
 
 import com.example.myapplication.databinding.ActivityMainBinding;
 import com.squareup.picasso.Picasso;
-import com.theartofdev.edmodo.cropper.CropImage;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,12 +38,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        mainVM = new MainVM(getActivityResultRegistry());
-        binding.setLifecycleOwner(this);
-        binding.setMain(mainVM);
+        MainVM viewModel = new ViewModelProvider(this, new ViewModelProvider.Factory() {
+            @Override
+            public <T extends ViewModel> T create(Class<T> modelClass) {
+                return (T) new MainVM(getApplication(), getActivityResultRegistry());
+            }
+        }).get(MainVM.class);
 
-        mainVM.getSelectedImageUri().observe(this, uri -> {
+        binding.setMain(viewModel);
+        binding.executePendingBindings();
+
+        viewModel.getSelectedImageUri().observe(this, uri -> {
             // Update UI with selected image URI
+            binding.imageView.setImageURI(uri);
         });
     }
 }
